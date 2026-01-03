@@ -5,6 +5,8 @@ import { Direction, Entity, Ghost, Position, TileType, GameState } from '../type
 
 // --- Helper Functions ---
 
+const gameMan = Math.random() > 0.5 ? 'KAI' : 'LEX';
+
 const isWall = (x: number, y: number, map: number[][]) => {
   if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return true;
   return map[y][x] === TileType.WALL;
@@ -41,6 +43,8 @@ interface EntitySpriteProps {
 }
 
 const EntitySprite: React.FC<EntitySpriteProps> = ({ entity, imgUrl, className }) => {
+  const isGhost = 'color' in entity;
+  const ghost = entity as Ghost;
   const style: React.CSSProperties = {
     position: 'absolute',
     left: `${entity.pos.x * CELL_SIZE}px`,
@@ -52,10 +56,14 @@ const EntitySprite: React.FC<EntitySpriteProps> = ({ entity, imgUrl, className }
     backgroundSize: 'cover',
     borderRadius: '50%',
     zIndex: 10,
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: isGhost ? (ghost.isScared ? '#0000FF' : ghost.color) : 'transparent',
+    filter: isGhost && ghost.isScared ? 'invert(1)' : 'none',
   };
   
   // Rotate Pacman based on direction
-  if (!('color' in entity)) {
+  if (!isGhost) {
      let rotation = 0;
      if (entity.dir === Direction.DOWN) rotation = 90;
      if (entity.dir === Direction.LEFT) rotation = 180;
@@ -64,7 +72,7 @@ const EntitySprite: React.FC<EntitySpriteProps> = ({ entity, imgUrl, className }
      style.zIndex = 20;
   }
 
-  return <div style={style} className={`shadow-lg border-2 border-transparent ${className}`} />;
+  return <div style={style} className={`shadow-lg ${className || ''}`} />;
 };
 
 export const PacmanGame: React.FC = () => {
@@ -94,6 +102,7 @@ export const PacmanGame: React.FC = () => {
   ]);
 
   const [scaredTimer, setScaredTimer] = useState<number>(0);
+  const [frozenTimer, setFrozenTimer] = useState<number>(0);
 
   // --- Logic ---
 
@@ -243,6 +252,7 @@ export const PacmanGame: React.FC = () => {
       setMap(newMap);
       setGameState(prev => ({ ...prev, score: prev.score + 50 }));
       setScaredTimer(600); // frames roughly
+      setFrozenTimer(300); // 5 seconds roughly
       setGhosts(prev => prev.map(g => ({ ...g, isScared: true })));
     } else if (tile === TileType.BONUS) {
       const newMap = [...map];
@@ -257,11 +267,11 @@ export const PacmanGame: React.FC = () => {
     // 3. Move Ghosts
     let hitPacman = false;
     const newGhosts = ghosts.map(g => {
-        const movedGhost = moveEntity(g, map, g.isScared ? SCARED_GHOST_SPEED : g.speed);
-        // We use a custom AI decision wrapper, but moveEntity handles collision physics
-        // Actually, we need the AI logic inside move.
-        // Let's rely on `moveGhost` which includes AI decision making
-        const intelligentGhost = moveGhost(g, map, newPacman.pos);
+        let intelligentGhost = g;
+        
+        if (frozenTimer <= 0) {
+            intelligentGhost = moveGhost(g, map, newPacman.pos);
+        }
         
         // Collision with Pacman
         const dist = Math.hypot(intelligentGhost.pos.x - newPacman.pos.x, intelligentGhost.pos.y - newPacman.pos.y);
@@ -298,6 +308,10 @@ export const PacmanGame: React.FC = () => {
         }
     }
 
+    if (frozenTimer > 0) {
+        setFrozenTimer(prev => prev - 1);
+    }
+
     // 5. Win Condition
     // Check if any dots left
     const dotsLeft = map.some(row => row.includes(TileType.DOT) || row.includes(TileType.POWER_PELLET));
@@ -311,7 +325,8 @@ export const PacmanGame: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 p-4">
       <div className="mb-4 flex justify-between w-full max-w-lg text-yellow-400 text-xl font-bold tracking-widest">
-        <div>SCORE: {gameState.score}</div>
+        <div>SCORE: {gameState.score} </div>
+        <div>{gameMan} MAN</div>
         <div className="flex gap-2">
             {Array.from({length: Math.max(0, gameState.lives)}).map((_, i) => (
                 <div key={i} className="w-6 h-6 rounded-full bg-yellow-400" />
@@ -342,13 +357,12 @@ export const PacmanGame: React.FC = () => {
         ))}
 
         {/* Entities */}
-        <EntitySprite entity={pacman} imgUrl={SPRITES.PACMAN}  />
+        <EntitySprite entity={pacman} imgUrl={gameMan === 'KAI' ? SPRITES.KAI : SPRITES.LEX}  />
         {ghosts.map(ghost => (
             <EntitySprite 
                 key={ghost.id} 
                 entity={ghost} 
                 imgUrl={ghost.imgUrl} 
-                className={ghost.isScared ? "border-blue-300 filter grayscale" : `border-[${ghost.baseColor}]`} 
             />
         ))}
 
@@ -389,7 +403,6 @@ export const PacmanGame: React.FC = () => {
         <p>USE ARROW KEYS OR SWIPE TO MOVE</p>
         <p className="mt-2">GHOSTS ARE "DORI" "NICK" "TT" "DADA"</p>
         <p className="mt-2">WALLS SPELL "KAI" & "LEX"</p>
-        <p className="mt-2">2026 NEW YORK</p>
       </div>
     </div>
   );

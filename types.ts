@@ -6,6 +6,8 @@ export enum Direction {
   NONE = 'NONE'
 }
 
+
+
 export enum TileType {
   EMPTY = 0,
   WALL = 1,
@@ -28,6 +30,7 @@ export interface Entity {
   speed: number;
 }
 
+
 export interface Ghost extends Entity {
   color: string;
   isScared: boolean;
@@ -42,4 +45,8 @@ export interface GameState {
   gameOver: boolean;
   won: boolean;
   paused: boolean;
+}
+
+export interface Gameman{
+  name: string
 }
