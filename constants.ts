@@ -13,6 +13,11 @@ export const SPRITES = {
   CROISSANT: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Croissant_icon.svg/512px-Croissant_icon.svg.png', // Bonus Item
 };
 
+export const AUDIO = {
+  BACKGROUND: '/sounds/background.mp3', // Replace with your background music file
+  POWER_MODE: '/sounds/power_mode.mp3', // Replace with your frozen/countdown sound file
+};
+
 export const CELL_SIZE = 28; // Base pixels per cell, scales with CSS
 export const GAME_SPEED = 150; // Milliseconds per tick (approx)
 export const PACMAN_SPEED = 0.12; // Cells per frame
