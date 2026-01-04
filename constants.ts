@@ -3,15 +3,22 @@ import { TileType } from './types';
 // Replace these URLs with your actual photos
 // For local images: Create a 'public/images' folder and use paths like '/images/filename.png'
 export const SPRITES = {
-  PACMAN: Math.random() > 0.5 ? '/images/lex.png' : '/images/kai.png',
+  // PACMAN: Math.random() > 0.5 ? '/images/lex.png' : '/images/kai.png',
   KAI: '/images/kai.png',
   LEX: '/images/lex.png',
-  BLINKY: 'https://picsum.photos/id/1012/200/200', // Adult 1 (Red)
-  PINKY: 'https://picsum.photos/id/1027/200/200',  // Adult 2 (Pink)
-  INKY: 'https://picsum.photos/id/338/200/200',   // Adult 3 (Cyan)
-  CLYDE: 'https://picsum.photos/id/334/200/200',  // Adult 4 (Orange)
-  CROISSANT: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Croissant_icon.svg/512px-Croissant_icon.svg.png', // Bonus Item
+  // BLINKY: 'images/dori.png', // Adult 1 (Red)
+  // PINKY: 'images/nick.png',  // Adult 2 (Pink)
+  // INKY: 'images/aud.png',   // Adult 3 (Cyan)
+  // CLYDE: 'images/dada.png',  // Adult 4 (Orange)
 };
+
+export const GHOST_SPRITES = [
+  'images/dori.png',
+  'images/nick.png',
+  'images/aud.png',
+  'images/dada.png',
+  'images/java.png',
+];
 
 export const AUDIO = {
   BACKGROUND: '/sounds/background.mp3', // Replace with your background music file
@@ -22,7 +29,7 @@ export const CELL_SIZE = 28; // Base pixels per cell, scales with CSS
 export const GAME_SPEED = 150; // Milliseconds per tick (approx)
 export const PACMAN_SPEED = 0.12; // Cells per frame
 export const GHOST_SPEED = 0.08;
-export const SCARED_GHOST_SPEED = 0.8;
+export const SCARED_GHOST_SPEED = 0.08;
 
 // 0: Empty, 1: Wall, 2: Dot, 3: Power, 4: House, 5: Bonus
 // Designed to spell KAI (Top) and LEX (Bottom) slightly abstractly

@@ -33,7 +33,7 @@ export interface Entity {
 
 export interface Ghost extends Entity {
   color: string;
-  isScared: boolean;
+  // isScared: boolean;
   isEaten: boolean;
   baseColor: string; // Hex code for fallback
   imgUrl: string;    // Photo URL

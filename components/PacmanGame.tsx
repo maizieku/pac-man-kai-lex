@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop';
-import { INITIAL_MAP, MAP_HEIGHT, MAP_WIDTH, SPRITES, PACMAN_SPEED, GHOST_SPEED, SCARED_GHOST_SPEED, CELL_SIZE, AUDIO } from '../constants';
+import { INITIAL_MAP, MAP_HEIGHT, MAP_WIDTH, SPRITES, GHOST_SPRITES, PACMAN_SPEED, GHOST_SPEED, SCARED_GHOST_SPEED, CELL_SIZE, AUDIO } from '../constants';
 import { Direction, Entity, Ghost, Position, TileType, GameState } from '../types';
 
 // --- Helper Functions ---
@@ -38,7 +38,7 @@ const INITIAL_GHOST_POSITIONS: Record<string, Position> = {
   blinky: { x: 9, y: 8 },
   pinky: { x: 10, y: 8 },
   inky: { x: 8, y: 8 },
-  clyde: { x: 11, y: 8 },
+  // clyde: { x: 11, y: 8 },
 };
 
 const INITIAL_PACMAN_POSITIONS: Record<string, Position> = {
@@ -65,13 +65,13 @@ const EntitySprite: React.FC<EntitySpriteProps> = ({ entity, imgUrl, className, 
     height: `${CELL_SIZE}px`,
     transition: 'none', // Handle movement via requestAnimationFrame
     backgroundImage: `url(${imgUrl})`,
-    backgroundSize: 'cover',
-    borderRadius: '50%',
+    backgroundSize: 'contain',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center',
+    borderRadius: '0',
     zIndex: 10,
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: isGhost ? ((ghost.isScared || isFrozen) ? '#0000FF' : ghost.color) : 'transparent',
-    filter: isGhost && (ghost.isScared || isFrozen) ? 'invert(1)' : 'none',
+    filter: isGhost && (isFrozen) ? 'invert(1)' : 'none',
+    transform: 'scale(1.6)',
   };
   
   // Rotate Pacman based on direction
@@ -82,10 +82,6 @@ const EntitySprite: React.FC<EntitySpriteProps> = ({ entity, imgUrl, className, 
      if (entity.dir === Direction.UP) rotation = -90;
      style.transform = `rotate(${rotation}deg) scale(1.6)`;
      style.zIndex = 20;
-     style.borderRadius = '0';
-     style.backgroundSize = 'contain';
-     style.backgroundRepeat = 'no-repeat';
-     style.backgroundPosition = 'center';
   }
 
   return <div style={style} className={`shadow-lg ${className || ''}`} />;
@@ -110,14 +106,15 @@ export const PacmanGame: React.FC = () => {
     speed: PACMAN_SPEED * 0.8
   });
 
-  const [ghosts, setGhosts] = useState<Ghost[]>([
-    { id: 'blinky', pos: INITIAL_GHOST_POSITIONS.blinky, dir: Direction.LEFT, nextDir: Direction.UP, speed: GHOST_SPEED * 0.8, color: 'red', baseColor: 'red', imgUrl: SPRITES.BLINKY, isScared: false, isEaten: false },
-    { id: 'pinky', pos: INITIAL_GHOST_POSITIONS.pinky, dir: Direction.RIGHT, nextDir: Direction.UP, speed: GHOST_SPEED * 0.8, color: 'pink', baseColor: 'pink', imgUrl: SPRITES.PINKY, isScared: false, isEaten: false },
-    { id: 'inky', pos: INITIAL_GHOST_POSITIONS.inky, dir: Direction.UP, nextDir: Direction.RIGHT, speed: GHOST_SPEED * 0.8, color: 'cyan', baseColor: 'cyan', imgUrl: SPRITES.INKY, isScared: false, isEaten: false },
-    { id: 'clyde', pos: INITIAL_GHOST_POSITIONS.clyde, dir: Direction.UP, nextDir: Direction.LEFT, speed: GHOST_SPEED * 0.8, color: 'orange', baseColor: 'orange', imgUrl: SPRITES.CLYDE, isScared: false, isEaten: false },
-  ]);
+  const [ghosts, setGhosts] = useState<Ghost[]>(() => {
+    const shuffledGhosts = [...GHOST_SPRITES].sort(() => 0.5 - Math.random()).slice(0, 3);
+    return [
+      { id: 'blinky', pos: INITIAL_GHOST_POSITIONS.blinky, dir: Direction.LEFT, nextDir: Direction.UP, speed: GHOST_SPEED * 0.8, color: 'red', baseColor: 'red', imgUrl: shuffledGhosts[0],  isEaten: false },
+      { id: 'pinky', pos: INITIAL_GHOST_POSITIONS.pinky, dir: Direction.RIGHT, nextDir: Direction.UP, speed: GHOST_SPEED * 0.8, color: 'pink', baseColor: 'pink', imgUrl: shuffledGhosts[1],  isEaten: false },
+      { id: 'inky', pos: INITIAL_GHOST_POSITIONS.inky, dir: Direction.UP, nextDir: Direction.RIGHT, speed: GHOST_SPEED * 0.8, color: 'cyan', baseColor: 'cyan', imgUrl: shuffledGhosts[2],  isEaten: false },
+    ];
+  });
 
-  const [scaredTimer, setScaredTimer] = useState<number>(0);
   const [frozenTimer, setFrozenTimer] = useState<number>(0);
 
   // --- Audio ---
@@ -239,7 +236,7 @@ export const PacmanGame: React.FC = () => {
       // Or simply float around aimlessly
     }
 
-    let speed = ghost.isScared ? SCARED_GHOST_SPEED * 0.6 : ghost.speed;
+    let speed = ghost.speed;
     
     let { x, y } = ghost.pos;
     const intX = Math.round(x);
@@ -270,7 +267,7 @@ export const PacmanGame: React.FC = () => {
         } else {
             // Simple AI: Randomly choose valid direction
             // Improvement: bias towards Pacman if not scared
-            if (Math.random() > 0.3 && !ghost.isScared && options.length > 1) {
+            if (Math.random() > 0.3 &&  options.length > 1) {
                 // Find dir that minimizes distance to pacman
                 currentDir = options.sort((a, b) => {
                      const va = getVector(a);
@@ -316,9 +313,8 @@ export const PacmanGame: React.FC = () => {
       newMap[py][px] = TileType.EMPTY;
       setMap(newMap);
       setGameState(prev => ({ ...prev, score: prev.score + 50 }));
-      setScaredTimer(600); // frames roughly
       setFrozenTimer(300); // 5 seconds roughly
-      setGhosts(prev => prev.map(g => ({ ...g, isScared: true })));
+      setGhosts(prev => prev.map(g => ({ ...g, isEaten: false })));
     } else if (tile === TileType.BONUS) {
       const newMap = [...map];
       newMap[py] = [...newMap[py]];
@@ -341,10 +337,10 @@ export const PacmanGame: React.FC = () => {
         // Collision with Pacman
         const dist = Math.hypot(intelligentGhost.pos.x - newPacman.pos.x, intelligentGhost.pos.y - newPacman.pos.y);
         if (dist < 1.2) {
-            if ((g.isScared || frozenTimer > 0) && !g.isEaten) {
+            if (( frozenTimer > 0) && !g.isEaten) {
                  // Eat Ghost
                  setGameState(prev => ({ ...prev, score: prev.score + 200 }));
-                 return { ...intelligentGhost, isEaten: true, isScared: false, pos: INITIAL_GHOST_POSITIONS[g.id] || { x: 10, y: 8 } };
+                 return { ...intelligentGhost, isEaten: true,  pos: INITIAL_GHOST_POSITIONS[g.id] || { x: 10, y: 8 } };
             } else if (!g.isEaten) {
                 hitPacman = true;
             }
@@ -357,26 +353,22 @@ export const PacmanGame: React.FC = () => {
     if (hitPacman) {
         if (gameState.lives > 1) {
              setGameState(prev => ({ ...prev, lives: prev.lives - 1, paused: true }));
-             // Reset positions
-             setScaredTimer(0);
              setFrozenTimer(0);
              setPacman(p => ({ ...p, pos:  { x: 12, y: 15 }, dir: Direction.NONE, nextDir: Direction.NONE }));
-             setGhosts(prev => prev.map((g, i) => ({ ...g, pos: { x: 9 + (i%3), y: 7 + Math.floor(i/3) }, dir: Direction.NONE, isScared: false, isEaten: false })));
+             setGhosts(prev => prev.map((g, i) => ({ ...g, pos: { x: 9 + (i%3), y: 7 + Math.floor(i/3) }, dir: Direction.NONE, isEaten: false })));
         } else {
              setGameState(prev => ({ ...prev, lives: 0, gameOver: true }));
         }
     }
 
-    // 4. Scared Timer
-    if (scaredTimer > 0) {
-        setScaredTimer(prev => prev - 1);
-        if (scaredTimer === 1) {
-            setGhosts(prev => prev.map(g => ({ ...g, isScared: false, isEaten: false })));
-        }
-    }
+    // 4. Frozen Timer
 
     if (frozenTimer > 0) {
-        setFrozenTimer(prev => prev - 1);
+        const nextTimer = frozenTimer - 1;
+        setFrozenTimer(nextTimer);
+        if (nextTimer === 0) {
+            setGhosts(prev => prev.map(g => ({ ...g, isEaten: false })));
+        }
     }
 
     // 5. Win Condition
@@ -391,6 +383,7 @@ export const PacmanGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 p-4">
+      {/* <style>{`div { border: 1px solid red !important; }`}</style> */}
       <div className="mb-4 flex justify-between w-full max-w-lg text-yellow-400 text-xl font-bold tracking-widest">
         <div>SCORE: {gameState.score} </div>
         <div>{gameMan} MAN</div>
@@ -403,7 +396,7 @@ export const PacmanGame: React.FC = () => {
 
       <div className="flex flex-row gap-6 items-center justify-center">
       <div className="w-24 pt-20"></div> 
-      <div className="relative bg-black rounded-lg shadow-[0_0_20px_rgba(219,39,119,0.6)]"
+      <div className="relative bg-black rounded-lg shadow-[0_0_20px_rgba(0,0,255,0.6)]"
            style={{ width: MAP_WIDTH * CELL_SIZE, height: MAP_HEIGHT * CELL_SIZE }}>
         
         {/* Render Map */}
@@ -411,9 +404,14 @@ export const PacmanGame: React.FC = () => {
             <div key={y} className="flex">
                 {row.map((cell, x) => (
                     <div key={`${x}-${y}`} style={{ width: CELL_SIZE, height: CELL_SIZE }} className="flex items-center justify-center">
-                        {cell === TileType.WALL && <div className="w-full h-full bg-pink-800/40 border border-pink-700 rounded-sm" />}
-                        {cell === TileType.DOT && <div className="w-1.5 h-1.5 bg-pink-200 rounded-full" />}
-                        {cell === TileType.POWER_PELLET && <div className="w-4 h-4 bg-pink-400 rounded-full animate-pulse" />}
+                        {cell === TileType.WALL && <div className="w-full h-full bg-blue-800/40 border border-blue-200 rounded-sm" />}
+                        {cell === TileType.DOT && <div className="w-1.5 h-1.5 bg-blue-200 rounded-full" />}
+                        {cell === TileType.POWER_PELLET &&
+                         <div className="flex items-center justify-center w-full h-full animate-pulse text-lg leading-none">
+                              ❄️
+                            </div>
+                        //  <div className="w-4 h-4 bg-blue-400 rounded-full animate-pulse" />
+                        }
                         {cell === TileType.GHOST_HOUSE && <div className="w-full h-full bg-transparent" />}
                         {cell === TileType.BONUS && (
                             <div className="flex items-center justify-center w-full h-full animate-bounce text-lg leading-none">
@@ -471,7 +469,7 @@ export const PacmanGame: React.FC = () => {
 
       <div className="w-24 pt-20">
         {frozenTimer > 0 && (
-            <div className="flex flex-col items-start">
+            <div className="flex flex-col items-start justify-start">
                 <div className="text-cyan-400 font-bold mb-1">HURRY!</div>
                 <div className="text-4xl font-bold text-white border-2 border-cyan-400 rounded-lg p-2 w-full text-center bg-blue-900/50">
                     {Math.ceil(frozenTimer / 60)}
